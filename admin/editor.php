@@ -3,7 +3,12 @@
  * ChubbyCMS - Article Editor
  */
 require_once '../includes/config.php';
-requireLogin();
+require_once '../core/Auth.php';
+
+use Core\Auth;
+
+Auth::initSession();
+Auth::requireLogin();
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -11,167 +16,165 @@ requireLogin();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChubbyCMS - Редактор</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../style.css">
     <style>
-        .editor-container {
-            display: flex;
-            gap: 20px;
-            padding: 20px;
-        }
-        .editor-main {
-            flex: 1;
-            min-width: 0;
-        }
-        .editor-sidebar {
-            width: 250px;
-            flex-shrink: 0;
-        }
-        .back-link {
-            display: inline-block;
-            margin-bottom: 16px;
-            color: var(--text-dim);
-        }
-        .back-link:hover {
-            color: var(--accent);
-        }
-        .nested-blocks {
-            margin-left: 20px;
-            border-left: 2px solid var(--border);
-            padding-left: 10px;
-            margin-top: 8px;
-        }
-        .img-little-content {
-            display: flex;
-            gap: 14px;
-            align-items: flex-start;
-        }
-        .img-little-text-area {
-            flex: 1;
-            min-height: 60px;
-        }
-        .add-nested-btn {
-            background: none;
-            border: 1px dashed var(--border);
-            color: var(--text-dim);
-            font-family: var(--font);
-            font-size: 10px;
-            padding: 4px 8px;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-        .add-nested-btn:hover {
-            border-color: #777;
-            color: var(--text);
-        }
+        .editor-container { display: flex; gap: 20px; padding: 20px; }
+        .editor-main { flex: 1; min-width: 0; }
+        .editor-sidebar { width: 250px; flex-shrink: 0; }
+        .block-constructor { margin-top: 16px; border: 1px solid var(--border); padding: 10px; min-height: 400px; background: var(--bg); }
+        .editor-toolbar { position: sticky; top: 0; z-index: 10; background: var(--bg); padding: 10px 0; border-bottom: 1px solid var(--border); display: flex; gap: 5px; flex-wrap: wrap; }
     </style>
 </head>
 <body>
     <div class="body">
         <div class="header">
-            <div class="left">
-                <a href="index.php" class="site-title">defenders08</a>
-            </div>
+            <div class="left"><a href="index.php" class="site-title">// ChubbyCMS</a></div>
             <div class="right">
-                <a href="../index.php" target="_blank">просмотр</a>
-                <a href="?logout=1">выйти</a>
+                <button class="cms-btn cms-btn-save" id="save-btn">Сохранить</button>
+                <a href="?logout=1">Выйти</a>
             </div>
         </div>
-        
-        <div class="content" style="margin-top: 20px;">
-            <div class="editor-container" style="width: 100%;">
-                <div class="editor-main">
-                    <a href="index.php" class="back-link">← назад к админке</a>
-                    
-                    <div class="cms-section-title">// редактор статей</div>
-                    
-                    <div class="editor-meta">
-                        <input type="text" id="editor-title" placeholder="название статьи" class="cms-input" style="flex: 1;">
-                    </div>
-                    
-                    <div class="editor-collection-row" style="margin-top: 8px;">
-                        <label class="cms-label">подборка:</label>
-                        <input type="text" id="editor-collection" placeholder="название подборки" class="cms-input" style="flex: 1; max-width: 200px;">
-                        <label class="cms-label" style="margin-left: 12px;">вкладка:</label>
-                        <input type="text" id="editor-tab" placeholder="название вкладки" class="cms-input" style="flex: 1; max-width: 150px;">
-                    </div>
-                    
-                    <div class="editor-toolbar" style="margin-top: 16px;">
-                        <button class="tool-btn" data-block="h3">[h3]</button>
-                        <button class="tool-btn" data-block="text">[¶]</button>
-                        <button class="tool-btn" data-block="tab">[tab]</button>
-                        <button class="tool-btn" data-block="ul">[ul]</button>
-                        <button class="tool-btn" data-block="img">[img]</button>
-                        <button class="tool-btn" data-block="img_little">[img_s]</button>
-                        <button class="tool-btn" data-block="hr">[—]</button>
-                        <button class="tool-btn" data-block="link">[link]</button>
-                        <button class="tool-btn" data-block="group">[grp]</button>
-                    </div>
-                    
-                    <div class="block-constructor" id="block-constructor" style="margin-top: 16px;">
-                        <div class="blocks-container" id="blocks-container"></div>
-                    </div>
-                    
-                    <div class="editor-actions" style="margin-top: 16px;">
-                        <button class="cms-btn cms-btn-save" id="save-article-btn">сохранить</button>
-                        <button class="cms-btn cms-btn-preview" id="preview-btn">предпросмотр</button>
-                        <button class="cms-btn cms-btn-delete hidden" id="delete-article-btn">удалить</button>
-                    </div>
-                    
-                    <div class="save-notice hidden" id="save-notice">
-                        ✓ статья сохранена
-                    </div>
+
+        <div class="editor-container">
+            <div class="editor-main">
+                <div class="editor-meta" style="display: flex; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="article-title" class="cms-input" placeholder="Заголовок статьи" style="flex: 2;">
+                    <input type="text" id="article-path" class="cms-input" placeholder="категория/подкатегория" style="flex: 1;">
                 </div>
-                
-                <div class="editor-sidebar">
-                    <div class="cms-section-title">// статьи</div>
-                    <div class="cms-articles-list" id="cms-articles-list" style="max-height: 400px; overflow-y: auto;"></div>
-                    
-                    <button class="cms-btn cms-btn-new" id="new-article-btn" style="margin-top: 12px; width: 100%;">+ новая статья</button>
-                    
-                    <div class="cms-section-title" style="margin-top: 20px;">// медиа</div>
-                    <div class="media-grid" id="media-grid" style="grid-template-columns: repeat(2, 1fr);"></div>
-                    <a href="media.php" style="font-size: 10px; color: var(--text-dim); margin-top: 8px; display: block;">управление медиа →</a>
+
+                <div class="editor-toolbar">
+                    <button class="tool-btn" data-type="paragraph">¶ Текст</button>
+                    <button class="tool-btn" data-type="heading">H Заголовок</button>
+                    <button class="tool-btn" data-type="image">▣ Картинка</button>
+                    <button class="tool-btn" data-type="list">≡ Список</button>
+                    <button class="tool-btn" data-type="quote">⌐ Цитата</button>
+                    <button class="tool-btn" data-type="columns">▦ Колонки</button>
+                    <button class="tool-btn" data-type="container">◇ Контейнер</button>
                 </div>
+
+                <div id="editor-container" class="block-constructor"></div>
             </div>
-        </div>
-        
-        <div class="footer">
-            <div class="left"></div>
-            <div class="right">design by defenders08</div>
+
+            <div class="editor-sidebar">
+                <div class="cms-section-title">// Статьи</div>
+                <div id="articles-list" class="cms-articles-list"></div>
+                <button class="cms-btn cms-btn-new" id="new-article" style="width: 100%; margin-top: 10px;">+ Новая статья</button>
+            </div>
         </div>
     </div>
-    
-    <!-- Block Picker Modal -->
-    <div id="block-picker" class="login-modal hidden">
-        <div class="login-box" style="width: 400px;">
-            <div class="login-title">выберите блок:</div>
-            <div class="picker-grid" style="grid-template-columns: repeat(3, 1fr); margin-top: 12px;">
-                <button class="picker-btn" data-type="text">¶ параграф</button>
-                <button class="picker-btn" data-type="h3">H заголовок</button>
-                <button class="picker-btn" data-type="tab">⌐ цитата</button>
-                <button class="picker-btn" data-type="ul">≡ список</button>
-                <button class="picker-btn" data-type="img">▣ картинка</button>
-                <button class="picker-btn" data-type="img_little">▤ картинка+текст</button>
-                <button class="picker-btn" data-type="hr">— разделитель</button>
-                <button class="picker-btn" data-type="link">⊕ ссылка</button>
-                <button class="picker-btn" data-type="group">▦ группа</button>
-            </div>
-            <button class="cms-btn" onclick="closeBlockPicker()" style="margin-top: 12px; width: 100%;">отмена</button>
-        </div>
-    </div>
-    
+
     <!-- Media Picker Modal -->
     <div id="media-picker" class="login-modal hidden">
-        <div class="login-box" style="width: 500px; max-height: 80vh; overflow-y: auto;">
-            <div class="login-title">выберите медиа:</div>
-            <div class="media-grid" id="media-picker-grid" style="margin-top: 12px;"></div>
-            <button class="cms-btn" onclick="closeMediaPicker()" style="margin-top: 12px; width: 100%;">отмена</button>
+        <div class="login-box" style="width: 600px; max-height: 80vh; overflow-y: auto;">
+            <div class="login-title">Выберите медиа</div>
+            <div id="media-grid" class="media-grid" style="margin-top: 10px;"></div>
+            <button class="cms-btn" style="width: 100%; margin-top: 10px;" onclick="closeMediaPicker()">Отмена</button>
         </div>
     </div>
-    
-    <script src="editor.js"></script>
+
+    <script type="module">
+        import { Editor } from './assets/js/editor/Editor.js';
+        import { ParagraphBlock, HeadingBlock, ImageBlock, ListBlock, QuoteBlock, ColumnsBlock, ContainerBlock } from './assets/js/editor/Blocks.js';
+
+        const editor = new Editor('editor-container');
+        editor.registerBlock('paragraph', ParagraphBlock);
+        editor.registerBlock('heading', HeadingBlock);
+        editor.registerBlock('image', ImageBlock);
+        editor.registerBlock('list', ListBlock);
+        editor.registerBlock('quote', QuoteBlock);
+        editor.registerBlock('columns', ColumnsBlock);
+        editor.registerBlock('container', ContainerBlock);
+
+        const csrfToken = '<?php echo Auth::generateCSRFToken(); ?>';
+        let currentArticle = null;
+
+        // Toolbar
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.onclick = () => editor.addBlock(btn.dataset.type);
+        });
+
+        // Save
+        document.getElementById('save-btn').onclick = async () => {
+            const title = document.getElementById('article-title').value;
+            const path = document.getElementById('article-path').value;
+            const blocks = editor.getBlocks();
+
+            const res = await fetch('api/articles.php?action=save', {
+                method: 'POST',
+                body: JSON.stringify({
+                    csrf_token: csrfToken,
+                    title, path, blocks,
+                    filename: currentArticle ? currentArticle.filename : null
+                })
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert('Сохранено!');
+                loadArticles();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        };
+
+        // Load Articles
+        async function loadArticles() {
+            const res = await fetch('api/articles.php?action=list');
+            const data = await res.json();
+            const list = document.getElementById('articles-list');
+            list.innerHTML = '';
+            data.articles.forEach(art => {
+                const item = document.createElement('div');
+                item.className = 'cms-article-item';
+                item.innerHTML = `<span class="cms-article-name">${art.path}/${art.filename}</span>`;
+                item.onclick = () => loadArticle(art);
+                list.appendChild(item);
+            });
+        }
+
+        async function loadArticle(art) {
+            currentArticle = art;
+            document.getElementById('article-title').value = art.title;
+            document.getElementById('article-path').value = art.path;
+            editor.setBlocks(art.blocks || []);
+        }
+
+        document.getElementById('new-article').onclick = () => {
+            currentArticle = null;
+            document.getElementById('article-title').value = '';
+            document.getElementById('article-path').value = '';
+            editor.setBlocks([]);
+        };
+
+        // Media Picker
+        let mediaCallback = null;
+        window.openMediaPicker = (callback) => {
+            mediaCallback = callback;
+            document.getElementById('media-picker').classList.remove('hidden');
+            loadMedia();
+        };
+
+        window.closeMediaPicker = () => {
+            document.getElementById('media-picker').classList.add('hidden');
+        };
+
+        async function loadMedia() {
+            const res = await fetch('api/media.php?action=list');
+            const data = await res.json();
+            const grid = document.getElementById('media-grid');
+            grid.innerHTML = '';
+            data.media.forEach(m => {
+                const img = document.createElement('img');
+                img.src = m.url;
+                img.className = 'media-item';
+                img.onclick = () => {
+                    if (mediaCallback) mediaCallback(m.url);
+                    closeMediaPicker();
+                };
+                grid.appendChild(img);
+            });
+        }
+
+        loadArticles();
+    </script>
 </body>
 </html>

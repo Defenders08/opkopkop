@@ -1,0 +1,10 @@
+{
+    "password_hash": "$2y$10$LEyVSf3UInLkWz6QF90I1Ob2NeQ4MYh5DLAfppsHLZo9b9VmmuS8i",
+    "2fa_secret": "123456",
+    "site_title": "defenders08",
+    "theme": "dark",
+    "nav": {
+        "header": [],
+        "footer": []
+    }
+}

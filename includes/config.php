@@ -4,21 +4,11 @@
  * Simple configuration file
  */
 
-// Security: Set secure session settings
-ini_set('session.cookie_httponly', '1');
-ini_set('session.use_only_cookies', '1');
-ini_set('session.cookie_samesite', 'Strict');
-
-// Start session
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 // Paths
-define('BASE_PATH', __DIR__);
-define('NOTES_PATH', BASE_PATH . '/notes');
-define('MEDIA_PATH', BASE_PATH . '/media');
-define('CONFIG_FILE', BASE_PATH . '/includes/config.json');
+define('ROOT_PATH', dirname(__DIR__));
+define('NOTES_PATH', ROOT_PATH . '/content/notes');
+define('MEDIA_PATH', ROOT_PATH . '/content/uploads');
+define('CONFIG_FILE', ROOT_PATH . '/content/settings.json');
 
 // Ensure directories exist
 if (!is_dir(NOTES_PATH)) mkdir(NOTES_PATH, 0755, true);
@@ -32,48 +22,28 @@ function loadConfig() {
     // Default config
     $default = [
         'password_hash' => password_hash('admin123', PASSWORD_DEFAULT),
+        '2fa_secret' => '123456',
         'site_title' => 'defenders08',
-        'theme' => 'dark'
+        'theme' => 'dark',
+        'nav' => [
+            'header' => [],
+            'footer' => []
+        ]
     ];
     saveConfig($default);
     return $default;
 }
 
 function saveConfig($config) {
-    file_put_contents(CONFIG_FILE, json_encode($config, JSON_PRETTY_PRINT));
+    file_put_contents(CONFIG_FILE, json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 }
 
 // Initialize config
 $config = loadConfig();
 
-// Check if user is logged in
-function isLoggedIn() {
-    return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
-}
-
-// Require login
-function requireLogin() {
-    if (!isLoggedIn()) {
-        header('Location: /admin/login.php');
-        exit;
-    }
-}
-
 // Sanitize input
 function sanitize($input) {
+    if (is_array($input)) return $input;
     return htmlspecialchars(strip_tags($input), ENT_QUOTES, 'UTF-8');
-}
-
-// Generate CSRF token
-function generateCSRFToken() {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
-
-// Verify CSRF token
-function verifyCSRFToken($token) {
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 ?>
