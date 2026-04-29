@@ -91,17 +91,18 @@ export class Editor {
 
     render() {
         this.container.innerHTML = '';
-        this.renderBlocks(this.blocks, this.container);
+        this.renderBlocks(this.blocks, this.container, 0);
     }
 
-    renderBlocks(blocks, container) {
+    renderBlocks(blocks, container, depth = 0) {
+        if (depth > 10) return; // Prevent infinite recursion
         blocks.forEach((block) => {
-            const blockEl = this.createBlockElement(block, blocks);
+            const blockEl = this.createBlockElement(block, blocks, depth);
             container.appendChild(blockEl);
         });
     }
 
-    createBlockElement(block, parentArray) {
+    createBlockElement(block, parentArray, depth = 0) {
         const config = this.blockRegistry[block.type];
         if (!config) return document.createElement('div');
 
@@ -128,7 +129,7 @@ export class Editor {
         config.render(body, block, (newData) => {
             Object.assign(block, newData);
             if (this.onUpdate) this.onUpdate(this.blocks);
-        }, this); // Pass editor instance for recursive rendering
+        }, this, depth); // Pass editor instance and depth for recursive rendering
 
         wrapper.appendChild(header);
         wrapper.appendChild(body);
@@ -163,26 +164,68 @@ export class Editor {
         this.container.ondragover = (e) => {
             e.preventDefault();
             const draggingEl = document.querySelector('.dragging');
-            const afterElement = this.getDragAfterElement(this.container, e.clientY);
+            const closestContainer = e.target.closest('.nested-blocks-container, .block-constructor');
+            if (!closestContainer) return;
+
+            const afterElement = this.getDragAfterElement(closestContainer, e.clientY);
             if (afterElement == null) {
-                this.container.appendChild(draggingEl);
+                closestContainer.appendChild(draggingEl);
             } else {
-                this.container.insertBefore(draggingEl, afterElement);
+                closestContainer.insertBefore(draggingEl, afterElement);
             }
         };
 
         this.container.ondrop = (e) => {
             e.preventDefault();
-            // Reorder this.blocks based on DOM
-            const newOrder = [];
-            this.container.querySelectorAll('.article-block').forEach(el => {
-                const id = el.dataset.id;
-                const block = this.blocks.find(b => b.id === id);
-                if (block) newOrder.push(block);
-            });
-            this.blocks = newOrder;
+            this.reconcileStateFromDOM();
             if (this.onUpdate) this.onUpdate(this.blocks);
         };
+    }
+
+    reconcileStateFromDOM() {
+        const reconcile = (container) => {
+            const result = [];
+            const blockEls = container.querySelectorAll(':scope > .article-block');
+            blockEls.forEach(el => {
+                const id = el.dataset.id;
+                const originalBlock = this.findBlockById(id, this.blocks);
+                if (originalBlock) {
+                    const block = { ...originalBlock };
+                    // Handle nested containers
+                    const nested = el.querySelector('.nested-blocks-container, .group-children > div:first-child');
+                    if (nested && block.blocks) {
+                        block.blocks = reconcile(nested);
+                    }
+                    if (nested && block.columns) {
+                        const colEls = el.querySelectorAll('.editor-column-preview');
+                        colEls.forEach((colEl, idx) => {
+                            const colNested = colEl.querySelector('.nested-blocks-container');
+                            if (colNested) block.columns[idx].blocks = reconcile(colNested);
+                        });
+                    }
+                    result.push(block);
+                }
+            });
+            return result;
+        };
+        this.blocks = reconcile(this.container);
+    }
+
+    findBlockById(id, array) {
+        for (const b of array) {
+            if (b.id === id) return b;
+            if (b.blocks) {
+                const found = this.findBlockById(id, b.blocks);
+                if (found) return found;
+            }
+            if (b.columns) {
+                for (const col of b.columns) {
+                    const found = this.findBlockById(id, col.blocks);
+                    if (found) return found;
+                }
+            }
+        }
+        return null;
     }
 
     getDragAfterElement(container, y) {

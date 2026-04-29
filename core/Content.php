@@ -39,6 +39,10 @@ class Content {
      */
     public function validatePath($path) {
         $realNotesPath = realpath($this->notesPath);
+        if (!$realNotesPath) return false;
+
+        // Ensure trailing slash for prefix matching
+        $realNotesPath = rtrim($realNotesPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 
         // Use a more robust check by canonicalizing path without realpath for non-existent files
         $canonicalPath = str_replace(['\\', '//'], '/', $path);
@@ -52,7 +56,12 @@ class Content {
                 $absolutes[] = $part;
             }
         }
-        $canonicalPath = '/' . implode('/', $absolutes);
+        $canonicalPath = DIRECTORY_SEPARATOR . implode(DIRECTORY_SEPARATOR, $absolutes);
+
+        // Add trailing separator if it was a directory call or for comparison
+        if (is_dir($path)) {
+            $canonicalPath .= DIRECTORY_SEPARATOR;
+        }
 
         if (strpos($canonicalPath, $realNotesPath) !== 0) {
             return false;
@@ -115,10 +124,7 @@ class Content {
         $content .= json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
         $content .= "\n---\n";
 
-        // Optional: add a markdown representation for fallback
-        // For now we just store the blocks as JSON in frontmatter as requested for visual editor
-
-        return file_put_contents($filepath, $content) !== false;
+        return file_put_contents($filepath, $content, LOCK_EX) !== false;
     }
 
     /**

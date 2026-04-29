@@ -30,7 +30,7 @@ if ($requestArticle) {
 // Filter articles by category if requested
 if ($currentCategory) {
     $articles = array_filter($articles, function($art) use ($currentCategory) {
-        return strpos($art['path'], $currentCategory) === 0;
+        return isset($art['path']) && strpos($art['path'], $currentCategory) === 0;
     });
 }
 

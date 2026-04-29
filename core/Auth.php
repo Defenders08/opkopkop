@@ -20,7 +20,18 @@ class Auth {
 
     public static function isLoggedIn() {
         self::initSession();
-        return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
+
+        if (isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true) {
+            // Check session expiration (e.g., 2 hours)
+            if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity']) > 7200) {
+                session_unset();
+                session_destroy();
+                return false;
+            }
+            $_SESSION['last_activity'] = time();
+            return true;
+        }
+        return false;
     }
 
     public static function requireLogin() {
@@ -31,24 +42,32 @@ class Auth {
     }
 
     public static function login($password, $config) {
-        // Simple rate limiting
-        self::initSession();
-        $attempts = $_SESSION['login_attempts'] ?? 0;
-        $last_attempt = $_SESSION['last_attempt_time'] ?? 0;
+        // IP-based rate limiting
+        $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+        $cacheFile = sys_get_temp_dir() . '/cms_login_' . md5($ip);
+        $cache = [];
+        if (file_exists($cacheFile)) {
+            $cache = json_decode(file_get_contents($cacheFile), true) ?: [];
+        }
+
+        $attempts = $cache['attempts'] ?? 0;
+        $last_attempt = $cache['last_attempt'] ?? 0;
 
         if ($attempts >= 5 && (time() - $last_attempt) < 300) {
             return 'too_many_attempts';
         }
 
         if (password_verify($password, $config['password_hash'])) {
+            self::initSession();
             $_SESSION['temp_auth'] = true;
             $_SESSION['temp_auth_time'] = time();
-            $_SESSION['login_attempts'] = 0;
+            if (file_exists($cacheFile)) unlink($cacheFile);
             return true;
         }
 
-        $_SESSION['login_attempts'] = $attempts + 1;
-        $_SESSION['last_attempt_time'] = time();
+        $cache['attempts'] = $attempts + 1;
+        $cache['last_attempt'] = time();
+        file_put_contents($cacheFile, json_encode($cache));
         return false;
     }
 

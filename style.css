@@ -282,6 +282,7 @@ a:hover {
 
 .markdown img {
   max-width: 100%;
+  height: auto;
   display: block;
   filter: grayscale(15%);
 }

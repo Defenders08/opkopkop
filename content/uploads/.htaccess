@@ -1,0 +1,19 @@
+# Disable script execution
+Options -Indexes
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .cgi .pl .asp .aspx .shtml .php.
+AddType text/plain .php .phtml .php3 .php4 .php5 .php7 .cgi .pl .asp .aspx .shtml .php.
+
+<FilesMatch "\.(php|php\.|phtml|pl|py|jsp|asp|sh|cgi)$">
+    Order Deny,Allow
+    Deny from all
+</FilesMatch>
+
+<IfModule mod_php5.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_flag engine off
+</IfModule>
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>

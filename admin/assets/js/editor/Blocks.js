@@ -15,7 +15,7 @@ export const ParagraphBlock = {
 };
 
 export const ColumnsBlock = {
-    render: (container, block, update, editor) => {
+    render: (container, block, update, editor, depth) => {
         const columnsContainer = document.createElement('div');
         columnsContainer.className = 'editor-columns-setup';
         columnsContainer.style.display = 'flex';
@@ -39,19 +39,18 @@ export const ColumnsBlock = {
             colDiv.appendChild(nestedContainer);
 
             // Recursively render blocks in this column
-            editor.renderBlocks(col.blocks, nestedContainer);
+            editor.renderBlocks(col.blocks, nestedContainer, depth + 1);
 
             const addBtn = document.createElement('button');
             addBtn.className = 'cms-btn-tiny';
             addBtn.textContent = '+ блок';
             addBtn.onclick = () => {
-                const type = prompt('Тип блока (paragraph, heading, image):', 'paragraph');
-                if (type) {
+                window.openBlockPicker((type) => {
                     const blockId = 'b' + Math.random().toString(36).substr(2, 9);
                     col.blocks.push({ id: blockId, type: type, content: '', settings: {}, blocks: [] });
                     editor.render();
                     update({ columns: block.columns });
-                }
+                });
             };
 
             colDiv.appendChild(addBtn);
@@ -63,7 +62,7 @@ export const ColumnsBlock = {
 };
 
 export const ContainerBlock = {
-    render: (container, block, update, editor) => {
+    render: (container, block, update, editor, depth) => {
         const groupDiv = document.createElement('div');
         groupDiv.className = 'group-children';
         groupDiv.style.minHeight = '50px';
@@ -73,21 +72,21 @@ export const ContainerBlock = {
         if (!block.blocks) block.blocks = [];
 
         const nestedContainer = document.createElement('div');
+        nestedContainer.className = 'nested-blocks-container';
         groupDiv.appendChild(nestedContainer);
 
-        editor.renderBlocks(block.blocks, nestedContainer);
+        editor.renderBlocks(block.blocks, nestedContainer, depth + 1);
 
         const addBtn = document.createElement('button');
         addBtn.className = 'cms-btn-tiny';
         addBtn.textContent = '+ блок';
         addBtn.onclick = () => {
-            const type = prompt('Тип блока (paragraph, heading, image):', 'paragraph');
-            if (type) {
+            window.openBlockPicker((type) => {
                 const blockId = 'b' + Math.random().toString(36).substr(2, 9);
                 block.blocks.push({ id: blockId, type: type, content: '', settings: {}, blocks: [] });
                 editor.render();
                 update({ blocks: block.blocks });
-            }
+            });
         };
 
         groupDiv.appendChild(addBtn);

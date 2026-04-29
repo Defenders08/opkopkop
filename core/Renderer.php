@@ -24,7 +24,11 @@ class Renderer {
         $content = $block['content'] ?? '';
         $settings = $block['settings'] ?? [];
 
-        $alignClass = isset($settings['align']) ? ' align-' . $settings['align'] : '';
+        $alignClass = '';
+        if (isset($settings['align'])) {
+            $align = self::escape($settings['align']);
+            $alignClass = ' align-' . $align;
+        }
 
         switch ($type) {
             case 'paragraph':
@@ -33,16 +37,17 @@ class Renderer {
 
             case 'heading':
             case 'h3':
-                $level = $settings['level'] ?? 3;
+                $level = (int)($settings['level'] ?? 3);
+                if ($level < 1 || $level > 6) $level = 3;
                 return '<h' . $level . ' class="' . $alignClass . '">' . self::escape($content) . '</h' . $level . '>';
 
             case 'image':
-                $src = self::escape($content);
+                $src = self::safeUrl($content);
                 $alt = self::escape($settings['alt'] ?? '');
                 return '<img src="' . $src . '" alt="' . $alt . '" class="' . $alignClass . '">';
 
             case 'img_little':
-                $src = self::escape($block['image'] ?? '');
+                $src = self::safeUrl($block['image'] ?? '');
                 $text = $block['text'] ?? '';
                 $nested = isset($block['blocks']) ? self::renderBlocks($block['blocks']) : nl2br(self::escape($text));
 
@@ -60,7 +65,7 @@ class Renderer {
                 return $html;
 
             case 'button':
-                $url = self::escape($settings['url'] ?? '#');
+                $url = self::safeUrl($settings['url'] ?? '#');
                 $label = self::escape($content ?: 'кнопка');
                 return '<a href="' . $url . '" class="cms-btn ' . $alignClass . '">' . $label . '</a>';
 
@@ -92,7 +97,7 @@ class Renderer {
                 $cols = $block['columns'] ?? [];
                 $html = '<div class="group columns ' . $alignClass . '" style="display: flex; gap: 20px; flex-wrap: wrap;">';
                 foreach ($cols as $col) {
-                    $width = $col['width'] ?? '1';
+                    $width = self::escape($col['width'] ?? '1');
                     $html .= '<div class="column" style="flex: ' . $width . '; min-width: 200px;">';
                     $html .= self::renderBlocks($col['blocks'] ?? []);
                     $html .= '</div>';
@@ -111,7 +116,7 @@ class Renderer {
                 return '<hr>';
 
             case 'link':
-                $url = self::escape($settings['url'] ?? '#');
+                $url = self::safeUrl($settings['url'] ?? '#');
                 return '<a href="' . $url . '">' . self::escape($content) . '</a>';
 
             default:
@@ -120,6 +125,7 @@ class Renderer {
     }
 
     private static function renderBlocks($blocks) {
+        if (!is_array($blocks)) return '';
         $html = '';
         foreach ($blocks as $block) {
             $html .= self::renderBlock($block);
@@ -128,6 +134,14 @@ class Renderer {
     }
 
     private static function escape($text) {
-        return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+        return htmlspecialchars($text ?? '', ENT_QUOTES, 'UTF-8');
+    }
+
+    private static function safeUrl($url) {
+        $url = self::escape($url);
+        if (preg_match('/^(https?:\/\/|#|\/)/i', $url)) {
+            return $url;
+        }
+        return '#';
     }
 }

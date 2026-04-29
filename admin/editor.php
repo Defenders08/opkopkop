@@ -72,6 +72,23 @@ Auth::requireLogin();
         </div>
     </div>
 
+    <!-- Block Picker Modal -->
+    <div id="block-picker" class="login-modal hidden">
+        <div class="login-box" style="width: 400px;">
+            <div class="login-title">Добавить блок</div>
+            <div class="picker-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+                <button class="cms-btn" onclick="selectBlockType('paragraph')">Текст</button>
+                <button class="cms-btn" onclick="selectBlockType('heading')">Заголовок</button>
+                <button class="cms-btn" onclick="selectBlockType('image')">Картинка</button>
+                <button class="cms-btn" onclick="selectBlockType('list')">Список</button>
+                <button class="cms-btn" onclick="selectBlockType('quote')">Цитата</button>
+                <button class="cms-btn" onclick="selectBlockType('columns')">Колонки</button>
+                <button class="cms-btn" onclick="selectBlockType('container')">Контейнер</button>
+            </div>
+            <button class="cms-btn" style="width: 100%; margin-top: 20px;" onclick="closeBlockPicker()">Отмена</button>
+        </div>
+    </div>
+
     <script type="module">
         import { Editor } from './assets/js/editor/Editor.js';
         import { ParagraphBlock, HeadingBlock, ImageBlock, ListBlock, QuoteBlock, ColumnsBlock, ContainerBlock } from './assets/js/editor/Blocks.js';
@@ -155,6 +172,22 @@ Auth::requireLogin();
 
         window.closeMediaPicker = () => {
             document.getElementById('media-picker').classList.add('hidden');
+        };
+
+        // Block Picker
+        let blockCallback = null;
+        window.openBlockPicker = (callback) => {
+            blockCallback = callback;
+            document.getElementById('block-picker').classList.remove('hidden');
+        };
+
+        window.closeBlockPicker = () => {
+            document.getElementById('block-picker').classList.add('hidden');
+        };
+
+        window.selectBlockType = (type) => {
+            if (blockCallback) blockCallback(type);
+            closeBlockPicker();
         };
 
         async function loadMedia() {

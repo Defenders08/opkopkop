@@ -13,6 +13,7 @@ class Media {
         'audio/mpeg',
         'application/pdf'
     ];
+    private $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'mp4', 'webm', 'mp3', 'pdf'];
 
     public function __construct($uploadPath) {
         $this->uploadPath = rtrim($uploadPath, '/');
@@ -61,8 +62,13 @@ class Media {
             return ['error' => 'unsupported file type: ' . $mime];
         }
 
-        $name = preg_replace('/[^a-zA-Z0-9._-]/', '', $fileInfo['name']);
-        $name = time() . '_' . $name;
+        $extension = strtolower(pathinfo($fileInfo['name'], PATHINFO_EXTENSION));
+        if (!in_array($extension, $this->allowedExtensions)) {
+            return ['error' => 'unsupported file extension'];
+        }
+
+        $name = preg_replace('/[^a-zA-Z0-9._-]/', '', pathinfo($fileInfo['name'], PATHINFO_FILENAME));
+        $name = time() . '_' . $name . '.' . $extension;
 
         $destination = $this->uploadPath . '/' . $name;
 

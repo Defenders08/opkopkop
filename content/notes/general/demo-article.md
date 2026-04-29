@@ -4,20 +4,20 @@
     "path": "general",
     "blocks": [
         {
-            "id": "beu6bud65f",
+            "id": "bw2ty7dexr",
             "type": "paragraph",
             "content": "This is a demo article built with the new block editor.",
             "settings": [],
             "blocks": []
         },
         {
-            "id": "buz193zdfj",
+            "id": "b61fbn7cza",
             "type": "heading",
             "content": "Visual Verification",
             "settings": [],
             "blocks": []
         }
     ],
-    "updated": 1777437175
+    "updated": 1777439226
 }
 ---
